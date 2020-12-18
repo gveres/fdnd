@@ -3,7 +3,8 @@
    [com.fulcrologic.fulcro.application :as app]
    [com.fulcrologic.fulcro.components :as comp :refer [defsc]]
    [com.fulcrologic.fulcro.mutations :refer [defmutation]]
-   [com.fulcrologic.fulcro.dom :as dom]))
+   [com.fulcrologic.fulcro-css.css-injection :as inj]
+   [com.fulcrologic.fulcro-css.localized-dom :as dom]))
 
 (defonce app (app/fulcro-app))
 
@@ -14,9 +15,10 @@
 (defsc Task [this {:task/keys [id content] :as props}]
   {:query         [:task/id :task/content]
    :ident         (fn [] [:task/id (:task/id props)])
-   :initial-state (fn [{:keys [id content] :as params}] {:task/id id :task/content content})}
-  (dom/div
-    content))
+   :initial-state (fn [{:keys [id content] :as params}] {:task/id id :task/content content})
+   :css           [[:.task {:padding "8px"}]]}
+  (dom/div :.task
+           content))
 
 (def ui-task (comp/factory Task {:keyfn :task/id}))
 
@@ -41,6 +43,7 @@
   {:query         [{:column (comp/get-query Column)}]
    :initial-state (fn [params] {:column (comp/get-initial-state Column {:id 1 :title "To Do"})})}
   (dom/div
+    (inj/style-element {:component Root})
     (ui-column column)))
 
 (defn ^:export init
