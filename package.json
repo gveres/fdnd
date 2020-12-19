@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "react": "^17.0.1",
+    "react-beautiful-dnd": "^13.0.0",
     "react-dom": "^17.0.1",
     "shadow-cljs": "^2.11.8"
   }
