@@ -8,7 +8,7 @@
    [com.fulcrologic.fulcro-css.css-injection :as inj]
    [com.fulcrologic.fulcro-css.localized-dom :as dom]
    [com.fulcrologic.fulcro.algorithms.react-interop :as interop :refer [react-factory]]
-   [com.fulcrologic.fulcro.algorithms.merge :as merge]
+   ;; [com.fulcrologic.fulcro.algorithms.merge :as merge]
    ["react-beautiful-dnd" :refer [DragDropContext Droppable Draggable]]))
 
 (defonce app (app/fulcro-app {:optimized-render! render/render! }))
@@ -32,6 +32,7 @@
                           src :src
                           tgt :tgt :as params}]
   (action [{:keys [state]}]
+          (js/console.log "Mutation fired")
           (js/console.dir params)
           (swap! state update-in [:column/id 1 :column/tasks] #(dnd % (.-index src) (.-index tgt)))))
 
@@ -66,33 +67,48 @@
                                     (comp/get-initial-state Task {:id 4 :content "Task Four"})
                                     ]})
    :css           [[:.title {:padding "8px"}]]}
+  (js/console.log "Rendering column")
   (ui-droppable {:droppableId (str (comp/get-ident this))}
                 (fn [provided] (comp/with-parent-context this
                                  (dom/div {:ref (.-innerRef provided)}
                                           (dom/h4 :.title title)
-                                          (js/console.log "Rendering column with")
-                                          (js/console.dir tasks)
+                                          (js/console.log "Rendering column droppable with")
+                                          (js/console.dir props)
+                                          (js/console.dir this)
                                           (map-indexed (fn [idx t] (ui-task (comp/computed t {:orderColumn id :orderIndex idx}))) tasks)
                                           (.-placeholder provided))))))
 
 (def ui-column (comp/factory Column {:keyfn :column/id}))
 
-
-(defsc Root [this {:keys [column] :as props}]
-  {:query          [{:column (comp/get-query Column)}]
-   :initial-state  (fn [params] {:column (comp/get-initial-state Column {:id 1 :title "To Do"})})
-   :initLocalState (fn [this _] {:on-drag-end #(comp/transact!
+(defsc Canvas [this {:canvas/keys [columns] :as props}]
+  {:query          [:canvas/id :canvas/name {:canvas/columns
+                                             (comp/get-query Column)}]
+   :ident          (fn [] [:canvas/id (:canvas/id props)])
+   :initial-state  (fn [{:canvas/keys [id name]}] {:canvas/id      1
+                                                   :canvas/name    "Main"
+                                                   :canvas/columns [(comp/get-initial-state Column {:id 1 :title "To Do"})]})
+   :initLocalState (fn [this _] {:on-drag-end #(comp/transact!!
                                                  this
                                                  [(dnd-action {:column/id (.-source %)
                                                                :src       (.-source %)
-                                                               :tgt       (.-destination %)} )])} )}
+                                                               :tgt       (.-destination %)} )]
+                                                 {:only-render [:column/tasks]})} )}
   (let [{:keys [on-drag-end]} (comp/get-state this)]
-    (js/console.log "Rendering root with")
+    (js/console.log "Rendering Canvas with")
     (js/console.dir props)
+    (js/console.dir columns)
     (ui-drag-drop-context {:onDragEnd on-drag-end}
-                          (dom/div
-                            (inj/style-element {:component Root})
-                            (ui-column column)))))
+                          (map ui-column columns))))
+
+(def ui-canvas (comp/factory Canvas))
+
+(defsc Root [this {:ui/keys [root] :as props}]
+  {:query         [{:ui/root (comp/get-query Canvas)}]
+   :initial-state (fn [params] {:ui/root (comp/get-initial-state Canvas [{:canvas/id   1
+                                                                          :canvas/name "Main"} ])})}
+  (dom/div
+    (inj/style-element {:component Root})
+    (ui-canvas root)))
 
 (defn ^:export init
   "Shadow-cljs sets this up to be our entry-point function. See shadow-cljs.edn `:init-fn` in the modules of the main build."
