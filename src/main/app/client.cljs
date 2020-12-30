@@ -43,7 +43,8 @@
    :css           [[:.task {:padding          "8px"
                             :background-color "white"
                             :border           "1px solid lightgrey"
-                            :margin           "8px"}]]}
+                            :border-radius    "2px"
+                            :margin-bottom    "8px"}]]}
   (ui-draggable {:draggableId (str (comp/get-ident this)) :index orderIndex}
                 (fn [provided]
                   (let [dprops (merge {:ref (.-innerRef provided)}
@@ -71,10 +72,10 @@
   (ui-droppable {:droppableId (str (comp/get-ident this))}
                 (fn [provided] (comp/with-parent-context this
                                  (dom/div {:ref (.-innerRef provided)}
-                                          (dom/h4 :.title title)
+                                          (dom/h3 :.title title)
                                           (js/console.log "Rendering column droppable with")
                                           (js/console.dir props)
-                                          (js/console.dir this)
+                                          (js/console.dir provided)
                                           (map-indexed (fn [idx t] (ui-task (comp/computed t {:orderColumn id :orderIndex idx}))) tasks)
                                           (.-placeholder provided))))))
 
