@@ -39,7 +39,7 @@
 
 (defsc Task [this {:task/keys [id content] :as props} {:keys [orderColumn orderIndex]}]
   {:query         [:task/id :task/content]
-   :ident         (fn [] [:task/id (:task/id props)])
+   :ident         :task/id
    :initial-state (fn [{:keys [id content] :as params}] {:task/id id :task/content content})
    :css           [[:.task {:padding          "8px"
                             :border           "1px solid lightgrey"
@@ -66,11 +66,15 @@
    :initial-state (fn [{:keys [id title]}]
                     {:column/id    id
                      :column/title title
-                     :column/tasks [(comp/get-initial-state Task {:id 1 :content "Task One"})
-                                    (comp/get-initial-state Task {:id 2 :content "Task Two"})
-                                    (comp/get-initial-state Task {:id 3 :content "Task Three"})
-                                    (comp/get-initial-state Task {:id 4 :content "Task Four"})
-                                    ]})
+                     :column/tasks (if (= id 1)
+                                     [(comp/get-initial-state Task {:id 1 :content "Task One"})
+                                      (comp/get-initial-state Task {:id 2 :content "Task Two"})
+                                      (comp/get-initial-state Task {:id 3 :content "Task Three"})
+                                      (comp/get-initial-state Task {:id 4 :content "Task Four"})]
+                                     [(comp/get-initial-state Task {:id 5 :content "Task Five"})
+                                      (comp/get-initial-state Task {:id 6 :content "Task Six"})
+                                      (comp/get-initial-state Task {:id 7 :content "Task Seven"})
+                                      (comp/get-initial-state Task {:id 8 :content "Task Eight"})])})
    :css           [[:.title {:padding "8px"}]]}
   (js/console.log "Rendering column")
   (ui-droppable {:droppableId (str (comp/get-ident this))}
@@ -91,7 +95,8 @@
    :ident          (fn [] [:canvas/id (:canvas/id props)])
    :initial-state  (fn [{:canvas/keys [id name]}] {:canvas/id      1
                                                    :canvas/name    "Main"
-                                                   :canvas/columns [(comp/get-initial-state Column {:id 1 :title "To Do"})]})
+                                                   :canvas/columns [(comp/get-initial-state Column {:id 1 :title "To Do"})
+                                                                    (comp/get-initial-state Column {:id 2 :title "Done"})]})
    :initLocalState (fn [this _] {:on-drag-end #(comp/transact!!
                                                  this
                                                  [(dnd-action {:column/id (.-source %)
