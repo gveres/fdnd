@@ -8,6 +8,7 @@
    [com.fulcrologic.fulcro-css.css-injection :as inj]
    [com.fulcrologic.fulcro-css.css :as css]
    [com.fulcrologic.fulcro-css.localized-dom :as dom]
+   [cljs.reader :as rd]
    [com.fulcrologic.fulcro.algorithms.react-interop :as interop :refer [react-factory]]
    ;; [com.fulcrologic.fulcro.algorithms.merge :as merge]
    ["react-beautiful-dnd" :refer [DragDropContext Droppable Draggable]]))
@@ -29,13 +30,15 @@
             (subvec v tgt))
     (vec v)))
 
-(defmutation dnd-action [{cid :column/id
-                          src :src
+(defmutation dnd-action [{src :src
                           tgt :tgt :as params}]
   (action [{:keys [state]}]
           (js/console.log "Mutation fired")
           (js/console.dir params)
-          (swap! state update-in [:column/id 1 :column/tasks] #(dnd % (.-index src) (.-index tgt)))))
+          (let [src-droppable
+                (rd/read-string (.-droppableId src))]
+            (js/console.log src-droppable)
+            (swap! state update-in (into src-droppable [:column/tasks]) #(dnd % (.-index src) (.-index tgt))))))
 
 (defsc Task [this {:task/keys [id content] :as props} {:keys [orderColumn orderIndex]}]
   {:query         [:task/id :task/content]
@@ -47,22 +50,22 @@
                             :margin-bottom    "8px"
                             :background-color "white"
                             }]
-                   [:.red {:box-shadow "2px 2px 5px lightgrey"}]]}
+                   [:.raised {:box-shadow "2px 2px 5px lightgrey"}]]}
   (ui-draggable {:draggableId (str (comp/get-ident this)) :index orderIndex}
                 (fn [provided snapshot]
                   (let [dprops (merge {:ref (.-innerRef provided)}
                                       (js->clj (.-dragHandleProps provided))
                                       (js->clj (.-draggableProps provided)))]
                     (comp/with-parent-context this
-                      (let [{:keys [task red]} (css/get-classnames Task)]
-                        (dom/div (merge dprops {:classes [task (when (.-isDragging snapshot) red)]})
+                      (let [{:keys [task raised]} (css/get-classnames Task)]
+                        (dom/div (merge dprops {:classes [task (when (.-isDragging snapshot) raised)]})
                                  content)))))))
 
 (def ui-task (comp/factory Task {:keyfn :task/id}))
 
 (defsc Column [this {:column/keys [id title tasks] :as props}]
   {:query         [:column/id :column/title {:column/tasks (comp/get-query Task)}]
-   :ident         (fn [] [:column/id (:column/id props)])
+   :ident         :column/id
    :initial-state (fn [{:keys [id title]}]
                     {:column/id    id
                      :column/title title
@@ -99,9 +102,8 @@
                                                                     (comp/get-initial-state Column {:id 2 :title "Done"})]})
    :initLocalState (fn [this _] {:on-drag-end #(comp/transact!!
                                                  this
-                                                 [(dnd-action {:column/id (.-source %)
-                                                               :src       (.-source %)
-                                                               :tgt       (.-destination %)} )]
+                                                 [(dnd-action {:src (.-source %)
+                                                               :tgt (.-destination %)} )]
                                                  {:only-render [:column/tasks]})} )}
   (let [{:keys [on-drag-end]} (comp/get-state this)]
     (js/console.log "Rendering Canvas with")
