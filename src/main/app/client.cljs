@@ -6,6 +6,7 @@
    [com.fulcrologic.fulcro.components :as comp :refer [defsc]]
    [com.fulcrologic.fulcro.mutations :refer [defmutation]]
    [com.fulcrologic.fulcro-css.css-injection :as inj]
+   [com.fulcrologic.fulcro-css.css :as css]
    [com.fulcrologic.fulcro-css.localized-dom :as dom]
    [com.fulcrologic.fulcro.algorithms.react-interop :as interop :refer [react-factory]]
    ;; [com.fulcrologic.fulcro.algorithms.merge :as merge]
@@ -41,18 +42,21 @@
    :ident         (fn [] [:task/id (:task/id props)])
    :initial-state (fn [{:keys [id content] :as params}] {:task/id id :task/content content})
    :css           [[:.task {:padding          "8px"
-                            :background-color "white"
                             :border           "1px solid lightgrey"
                             :border-radius    "2px"
-                            :margin-bottom    "8px"}]]}
+                            :margin-bottom    "8px"
+                            :background-color "white"
+                            }]
+                   [:.red {:box-shadow "2px 2px 5px lightgrey"}]]}
   (ui-draggable {:draggableId (str (comp/get-ident this)) :index orderIndex}
-                (fn [provided]
+                (fn [provided snapshot]
                   (let [dprops (merge {:ref (.-innerRef provided)}
                                       (js->clj (.-dragHandleProps provided))
                                       (js->clj (.-draggableProps provided)))]
                     (comp/with-parent-context this
-                      (dom/div :.task dprops
-                               content))))))
+                      (let [{:keys [task red]} (css/get-classnames Task)]
+                        (dom/div (merge dprops {:classes [task (when (.-isDragging snapshot) red)]})
+                                 content)))))))
 
 (def ui-task (comp/factory Task {:keyfn :task/id}))
 
