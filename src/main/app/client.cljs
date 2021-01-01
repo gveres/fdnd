@@ -22,23 +22,31 @@
 (defn drop-index [col idx]
   (filter identity (map-indexed #(if (not= %1 idx) %2) col))) 
 
-(defn dnd [s src tgt]
-  (as-> s v
-    (vec (drop-index v src))
-    (concat (subvec v 0 tgt)
-            (vector (nth s src))
-            (subvec v tgt))
-    (vec v)))
+(defn insert-at-index [col idx item]
+  (concat
+    (take idx col)
+    (list item)
+    (drop idx col)))
+
+;; (insert-at-index [1 2 3] 2 8)
+
+(defn dnd [state src-coll-path src-idx tgt-coll-path tgt-idx]
+  (js/console.dir (get-in state src-coll-path))
+  (-> state
+      (update-in src-coll-path #(vec (drop-index % src-idx)))
+      (update-in tgt-coll-path #(vec (insert-at-index % tgt-idx (get-in state (into src-coll-path [src-idx]))))))
+  ) 
 
 (defmutation dnd-action [{src :src
                           tgt :tgt :as params}]
   (action [{:keys [state]}]
           (js/console.log "Mutation fired")
           (js/console.dir params)
-          (let [src-droppable
-                (rd/read-string (.-droppableId src))]
-            (js/console.log src-droppable)
-            (swap! state update-in (into src-droppable [:column/tasks]) #(dnd % (.-index src) (.-index tgt))))))
+          (let [->tasks-path  #(into (rd/read-string (.-droppableId %)) [:column/tasks])
+                src-coll-path (->tasks-path src)
+                tgt-coll-path (->tasks-path tgt)]
+            (js/console.log src-coll-path)
+            (swap! state dnd src-coll-path (.-index src) tgt-coll-path (.-index tgt)))))
 
 (defsc Task [this {:task/keys [id content] :as props} {:keys [orderColumn orderIndex]}]
   {:query         [:task/id :task/content]
